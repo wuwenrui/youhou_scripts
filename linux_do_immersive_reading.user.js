@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Linux.do 沉浸式阅读
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      2.0
 // @description  为 Linux.do 论坛提供优雅的沉浸式阅读体验，专注内容，消除干扰
 // @author       You
 // @match        https://linux.do/*
@@ -33,66 +33,111 @@
         const style = document.createElement('style');
         style.id = 'linuxdo-immersive-styles';
         style.textContent = `
-            /* 阅读模式切换按钮 */
-            #reading-mode-toggle {
+            /* 控制面板容器 */
+            #reading-control-panel {
                 position: fixed;
                 top: 50%;
-                right: 20px;
+                right: 25px;
                 transform: translateY(-50%);
-                width: 50px;
-                height: 50px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border: none;
-                border-radius: 50%;
-                cursor: pointer;
                 z-index: 10000;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            /* 主按钮 - 阅读模式切换 */
+            #reading-mode-toggle {
+                width: 56px;
+                height: 56px;
+                background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+                border: none;
+                border-radius: 16px;
+                cursor: pointer;
+                box-shadow: 0 8px 25px rgba(79, 70, 229, 0.3);
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 color: white;
-                font-size: 20px;
+                font-size: 22px;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            #reading-mode-toggle::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 100%);
+                opacity: 0;
+                transition: opacity 0.3s ease;
             }
             
             #reading-mode-toggle:hover {
-                transform: translateY(-50%) scale(1.1);
-                box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+                transform: translateY(-2px);
+                box-shadow: 0 12px 35px rgba(79, 70, 229, 0.4);
+            }
+            
+            #reading-mode-toggle:hover::before {
+                opacity: 1;
             }
             
             #reading-mode-toggle.active {
-                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                background: linear-gradient(135deg, #ec4899 0%, #f97316 100%);
+                box-shadow: 0 8px 25px rgba(236, 72, 153, 0.3);
             }
             
-            /* 主题切换按钮 */
+            #reading-mode-toggle.active:hover {
+                box-shadow: 0 12px 35px rgba(236, 72, 153, 0.4);
+            }
+            
+            /* 次要按钮 - 主题切换 */
             #theme-toggle {
-                position: fixed;
-                top: calc(50% + 70px);
-                right: 20px;
-                width: 40px;
-                height: 40px;
-                background: rgba(255,255,255,0.9);
-                border: 2px solid #ddd;
-                border-radius: 50%;
+                width: 44px;
+                height: 44px;
+                background: rgba(255, 255, 255, 0.95);
+                border: 1px solid rgba(0, 0, 0, 0.08);
+                border-radius: 12px;
                 cursor: pointer;
-                z-index: 10000;
                 transition: all 0.3s ease;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 16px;
-                backdrop-filter: blur(10px);
+                font-size: 18px;
+                backdrop-filter: blur(20px);
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             }
             
             #theme-toggle:hover {
-                transform: scale(1.1);
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                transform: translateY(-1px);
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+                background: rgba(255, 255, 255, 1);
             }
             
             /* 阅读模式样式 */
             body.immersive-reading {
                 background: var(--reading-bg) !important;
                 transition: all 0.5s ease;
+                min-height: 100vh;
+            }
+            
+            /* 添加优雅的背景纹理 */
+            body.immersive-reading::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: 
+                    radial-gradient(circle at 25% 25%, rgba(79, 70, 229, 0.05) 0%, transparent 50%),
+                    radial-gradient(circle at 75% 75%, rgba(124, 58, 237, 0.05) 0%, transparent 50%);
+                pointer-events: none;
+                z-index: -1;
             }
             
             /* 隐藏干扰元素 */
@@ -131,12 +176,26 @@
             
             body.immersive-reading .topic-body {
                 background: var(--content-bg) !important;
-                border-radius: 12px !important;
-                padding: 40px !important;
-                margin: 20px 0 !important;
+                border-radius: 20px !important;
+                padding: 50px !important;
+                margin: 30px 0 !important;
                 box-shadow: var(--content-shadow) !important;
                 border: var(--content-border) !important;
                 transition: all 0.3s ease !important;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            /* 内容卡片的装饰性元素 */
+            body.immersive-reading .topic-body::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, var(--accent-color), transparent);
+                opacity: 0.6;
             }
             
             body.immersive-reading .cooked {
@@ -189,37 +248,42 @@
             
             /* 浅色主题变量 */
             body.immersive-reading.theme-light {
-                --reading-bg: #f8fafc;
+                --reading-bg: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
                 --content-bg: #ffffff;
-                --content-shadow: 0 4px 20px rgba(0,0,0,0.08);
-                --content-border: 1px solid rgba(0,0,0,0.06);
-                --text-color: #2d3748;
-                --heading-color: #1a202c;
-                --accent-color: #667eea;
-                --quote-bg: #f7fafc;
-                --code-bg: #f1f5f9;
-                --code-color: #e53e3e;
+                --content-shadow: 0 10px 40px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+                --content-border: 1px solid rgba(0,0,0,0.04);
+                --text-color: #374151;
+                --heading-color: #111827;
+                --accent-color: #4f46e5;
+                --quote-bg: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                --code-bg: #f8fafc;
+                --code-color: #dc2626;
             }
             
             /* 深色主题变量 */
             body.immersive-reading.theme-dark {
-                --reading-bg: #0f172a;
+                --reading-bg: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
                 --content-bg: #1e293b;
-                --content-shadow: 0 4px 20px rgba(0,0,0,0.3);
-                --content-border: 1px solid rgba(255,255,255,0.1);
+                --content-shadow: 0 10px 40px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2);
+                --content-border: 1px solid rgba(255,255,255,0.08);
                 --text-color: #e2e8f0;
-                --heading-color: #f1f5f9;
-                --accent-color: #818cf8;
-                --quote-bg: #334155;
-                --code-bg: #475569;
+                --heading-color: #f8fafc;
+                --accent-color: #6366f1;
+                --quote-bg: linear-gradient(135deg, #334155 0%, #475569 100%);
+                --code-bg: #334155;
                 --code-color: #fbbf24;
             }
             
             /* 深色主题按钮样式 */
             body.theme-dark #theme-toggle {
-                background: rgba(30,41,59,0.9);
-                border-color: #475569;
+                background: rgba(30, 41, 59, 0.95);
+                border-color: rgba(255, 255, 255, 0.1);
                 color: #e2e8f0;
+            }
+            
+            body.theme-dark #theme-toggle:hover {
+                background: rgba(30, 41, 59, 1);
+                border-color: rgba(255, 255, 255, 0.2);
             }
             
             /* 平滑过渡动画 */
@@ -238,39 +302,93 @@
                     margin: 15px 0 !important;
                 }
                 
-                #reading-mode-toggle {
+                #reading-control-panel {
                     right: 15px;
-                    width: 45px;
-                    height: 45px;
+                    gap: 10px;
+                }
+                
+                #reading-mode-toggle {
+                    width: 50px;
+                    height: 50px;
+                    font-size: 20px;
                 }
                 
                 #theme-toggle {
-                    right: 15px;
-                    width: 35px;
-                    height: 35px;
+                    width: 40px;
+                    height: 40px;
+                    font-size: 16px;
                 }
+            }
+            
+            /* 工具提示样式 */
+            .reading-tooltip {
+                position: absolute;
+                right: 70px;
+                top: 50%;
+                transform: translateY(-50%);
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                white-space: nowrap;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s ease;
+                z-index: 10001;
+            }
+            
+            .reading-tooltip::after {
+                content: '';
+                position: absolute;
+                left: 100%;
+                top: 50%;
+                transform: translateY(-50%);
+                border: 5px solid transparent;
+                border-left-color: rgba(0, 0, 0, 0.8);
+            }
+            
+            #reading-mode-toggle:hover .reading-tooltip,
+            #theme-toggle:hover .reading-tooltip {
+                opacity: 1;
             }
         `;
         
         document.head.appendChild(style);
     }
     
-    // 创建切换按钮
-    function createToggleButtons() {
+    // 创建控制面板
+    function createControlPanel() {
+        // 创建面板容器
+        const panel = document.createElement('div');
+        panel.id = 'reading-control-panel';
+        
         // 阅读模式切换按钮
         const readingToggle = document.createElement('button');
         readingToggle.id = 'reading-mode-toggle';
         readingToggle.innerHTML = '📖';
-        readingToggle.title = '切换沉浸式阅读模式';
+        
+        // 添加工具提示
+        const readingTooltip = document.createElement('div');
+        readingTooltip.className = 'reading-tooltip';
+        readingTooltip.textContent = '沉浸式阅读 (Alt+R)';
+        readingToggle.appendChild(readingTooltip);
         
         // 主题切换按钮
         const themeToggle = document.createElement('button');
         themeToggle.id = 'theme-toggle';
         themeToggle.innerHTML = currentTheme === CONFIG.THEMES.LIGHT ? '🌙' : '☀️';
-        themeToggle.title = '切换主题';
         
-        document.body.appendChild(readingToggle);
-        document.body.appendChild(themeToggle);
+        // 添加工具提示
+        const themeTooltip = document.createElement('div');
+        themeTooltip.className = 'reading-tooltip';
+        themeTooltip.textContent = '切换主题 (Alt+T)';
+        themeToggle.appendChild(themeTooltip);
+        
+        // 组装面板
+        panel.appendChild(readingToggle);
+        panel.appendChild(themeToggle);
+        document.body.appendChild(panel);
         
         return { readingToggle, themeToggle };
     }
@@ -330,8 +448,8 @@
         // 添加样式
         addBaseStyles();
         
-        // 创建按钮
-        const { readingToggle, themeToggle } = createToggleButtons();
+        // 创建控制面板
+        const { readingToggle, themeToggle } = createControlPanel();
         
         // 绑定事件
         readingToggle.addEventListener('click', toggleReadingMode);
